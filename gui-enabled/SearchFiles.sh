@@ -1,5 +1,10 @@
 #! /usr/bin/env bash
 # -TODO- path automation
+
+TempFile=$(mktemp)
+
+sudoPassword="$1"
+
 location=`zenity --width=500 --height=400 --title="What path do you want to search?" \
 	--file-selection --directory`
 
@@ -13,7 +18,7 @@ fi
 type=`zenity --width=500 --height=400 --title="Choose a file extension" \
 	--list --radiolist \
 	--column 'Selection' \
-	--column 'Type' TRUE "mp3" FALSE "jpg"`
+	--column 'Type' TRUE "mp3" FALSE "jpg"` >${TempFile}
 
 if [[ $? -eq 1 ]]; then
 	zenity --error --title="Search Declined" --width=200 \
@@ -24,7 +29,7 @@ fi
 # echo "Finding and deleting $type files."
 
 readFiles() {
-  sudo find $location -name "*.$type" > fileDir
+  echo "$sudoPassword" | sudo -S find $location -name "*.$type" > fileDir
 }
 
 readLog() {
@@ -43,7 +48,19 @@ delete() {
 cleanUp() {
   rm fileDir
 }
+
 readFiles
+if [[ $? -eq 1 ]]; then
+  zenity --error --title="Search Declined" --width=200 \
+       --text="File search skipped"
+  exit 1
+fi
+
 readLog
+if [[ $? -eq 1 ]]; then
+  zenity --error --title="Search Declined" --width=200 \
+       --text="File search skipped"
+  exit 1
+fi
 delete
 cleanUp

@@ -2,10 +2,16 @@
 
 TempFile=$(mktemp)
 
-sudoPassword=`zenity --password --title="Password for $USER"`
+if [ "$1" != "no-pass" ]; then
+	sudoPassword=`zenity --password --title="Password for $USER"`
+fi
+
+if [ $? -eq 1 ]; then
+	exit 1
+fi
 
 informationOutput() {
-	zenity --width=600 --height=800 \
+	zenity --width=600 --height=600 \
 		 --title="$1" \
 		 --text-info --filename="${TempFile}"
 }
@@ -71,38 +77,36 @@ updateMachine() {
 		fi
 
 	elif [ $update_ == "Neither" ]; then
-		zenity --width=200 --height=200 --info --title="You Chose Nothing" \
-		--text="You chose to do neither update nor upgrade."
+		zenity --width=200 --info --title="You Chose Nothing" \
+			--text="You chose not to update or upgrade."
 	
 	fi
 }
 
 searchFiles() {
-	bash ./SearchFiles.sh
+	bash ./SearchFiles.sh "$sudoPassword" >${TempFile}
+	if [ $? -eq 0 ]; then 
+		informationOutput "Search Completed"
+	fi
 }
 
-# echo "Do you want to update and upgrade the machine?(y/n)"
-# read answer1
-# if [ "$answer1" = 'y' ]; then
-# 	updateMachine
-# fi
-
-# echo "Do you want to delete prohibited files off the machine?(y/n)"
-# read answer2
-# if [ "$answer2" = 'y' ]; then
-#         ./SearchFiles.sh
-# fi
-
-# echo "enable firewall?(y/n)"
-# read answer3
-# if [ "$answer3" = 'y' ]; then
-#         sudo ufw enable
-# 		sudo ufw status
-# fi
+enableFirewall() {
+	zenity --question --width=300 --title="Enable firewall" --text="Do you want to enable the firewall?(via ufw)"
+	if [ $? -eq 0 ]; then 
+		echo $sudoPassword | sudo -S ufw enable
+		echo $sudoPassword | sudo -S ufw status >${TempFile}
+		informationOutput "Firewall enabling result"
+	else
+		zenity --info --width=200 --title="Continue" --text="You choose not to enable the firewall"
+	fi
+}
 
 if [ $? -eq 0 ]; then
 	updateMachine
 	searchFiles
+	enableFirewall
+
+	zenity --info --title="Script End" --text="This is the end of the script. Hope it helped!"
 else
-	zenity --error --title="No Password" --text="No password no script!"
+	zenity --error --width=300 --title="No Password" --text="No password no script!"
 fi
