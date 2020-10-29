@@ -20,7 +20,7 @@ updateMachine() {
   	if [ $update_ != "Neither" ]; then
 	
 		if [ $update_ == "Both" ]; then
-  			echo $sudoPassword | sudo -S apt update | tee >(zenity --width=200 --height=100 \
+  			echo $sudoPassword | sudo -S apt-get update | tee >(zenity --width=200 --height=100 \
 	    	 --title="Collecting Information" --progress \
 	    	 --pulsate --text="Updating computer..." \
 	    	 --auto-kill --auto-close) >${TempFile}
@@ -31,7 +31,7 @@ updateMachine() {
   			
   			echo "" >> ${TempFile} \
   			
-  			echo $sudoPassword | sudo -S apt upgrade | tee >(zenity --width=200 --height=100 \
+  			echo $sudoPassword | sudo -S apt-get -y upgrade | tee >(zenity --width=200 --height=100 \
 	    	 --title="Collecting Information" --progress \
 	    	 --pulsate --text="Upgrading computer..." \
 	    	 --auto-kill --auto-close) >>${TempFile}
@@ -43,14 +43,14 @@ updateMachine() {
 			
 			# Update and pipe the output to the file 
 			# TempFile while displaying a loading window
-			echo $sudoPassword | sudo -S apt update | tee >(zenity --width=200 --height=100 \
+			echo $sudoPassword | sudo -S apt-get update | tee >(zenity --width=200 --height=100 \
 	    	 --title="Collecting Information" --progress \
 	    	 --pulsate --text="Updating computer..." \
 	    	 --auto-kill --auto-close) >${TempFile}
 
 			# Adding Extra information to the file to be displayed
 			echo "---------------------The upgradable files below---------------------" >>${TempFile}
-			apt list --upgradable >>${TempFile}
+			apt-get list --upgradable >>${TempFile}
 
 			informationOutput "Update Information"
 
@@ -62,7 +62,7 @@ updateMachine() {
 		
 		if [ "$update_" == "Upgrade" ] || [ "$UpgradeQ" == "Yes" ]
 		then
-			echo $sudoPassword | sudo -S apt upgrade | tee >(zenity --width=200 --height=100 \
+			echo $sudoPassword | sudo -S apt-get upgrade -y | tee >(zenity --width=200 --height=100 \
 	    	 --title="Collecting Information" --progress \
 	    	 --pulsate --text="Upgrading computer..." \
 	    	 --auto-kill --auto-close) >${TempFile}
@@ -71,10 +71,14 @@ updateMachine() {
 		fi
 
 	elif [ $update_ == "Neither" ]; then
-		zenity --width=500 --height=400 --info --title="You Chose Nothing" \
+		zenity --width=200 --height=200 --info --title="You Chose Nothing" \
 		--text="You chose to do neither update nor upgrade."
 	
 	fi
+}
+
+searchFiles() {
+	bash ./SearchFiles.sh
 }
 
 # echo "Do you want to update and upgrade the machine?(y/n)"
@@ -98,6 +102,7 @@ updateMachine() {
 
 if [ $? -eq 0 ]; then
 	updateMachine
+	searchFiles
 else
 	zenity --error --title="No Password" --text="No password no script!"
 fi
