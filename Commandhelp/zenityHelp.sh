@@ -2,7 +2,7 @@
 
 Tempfile=$(mktemp)
 
-WhichHelp=`zenity --width=400 --height=275 --list --radiolist \
+WhichHelp=`zenity --width=400 --height=275 --list --radiolist --window-icon=Icon.xpm\
      --title 'Zenity Help' \
      --text 'Select Help Topic:' \
      --column 'Select' \
@@ -13,12 +13,16 @@ WhichHelp=`zenity --width=400 --height=275 --list --radiolist \
      FALSE "help-scale" FALSE "help-text-info" FALSE "help-color-selection" \
      FALSE "help-password" FALSE "help-forms" FALSE "help-misc" FALSE "help-gtk"`
 
+if [ $? -eq 1 ]; then
+    exit 1
+fi
+
 zenity "--$WhichHelp" | tee >(zenity --width=200 --height=100 \
                 --title="Help Progress" --progress \
                 --pulsate --text="Getting the help you need!" \
                 --auto-kill --auto-close) >${Tempfile}
 
-zenity --title="Zenity Help" --width=500 --height=500 \
+zenity --title="Zenity Help" --width=500 --height=500 --window-icon=Icon.xpm \
 --text-info --filename="${Tempfile}"
 
 exit 0
