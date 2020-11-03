@@ -1,5 +1,5 @@
 # Scripting checklist
-##Linux
+## Linux
 * Update/Upgrade machine
 
-##Windows
+## Windows
