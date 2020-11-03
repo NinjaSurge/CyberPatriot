@@ -84,20 +84,29 @@ updateMachine() {
 }
 
 searchFiles() {
-	bash ./SearchFiles.sh "$sudoPassword" >${TempFile}
-	if [ $? -eq 0 ]; then 
-		informationOutput "Search Completed"
-	fi
+	loop="Yes"
+	while [ "$loop" == "Yes" ]; do
+		bash ./SearchFiles.sh "$sudoPassword" >${TempFile}
+		if [ $? -eq 0 ]; then 
+			informationOutput "Search Completed"
+		fi
+		loop=`zenity --title="Search Again?" \
+			--list --radiolist --text="Would you like to search for another file type?" \
+			--column 'Selection' \
+			--column 'Answer' TRUE "Yes" FALSE "No"`
+	done
 }
 
 enableFirewall() {
-	zenity --question --width=300 --title="Enable firewall" --text="Do you want to enable the firewall?(via ufw)"
+	zenity --question --width=300 --title="Enable firewall" \
+		--text="Do you want to enable the firewall?(via ufw)"
 	if [ $? -eq 0 ]; then 
 		echo $sudoPassword | sudo -S ufw enable
 		echo $sudoPassword | sudo -S ufw status >${TempFile}
 		informationOutput "Firewall enabling result"
 	else
-		zenity --info --width=200 --title="Continue" --text="You choose not to enable the firewall"
+		zenity --info --width=200 --title="Continue" \
+			--text="You choose not to enable the firewall"
 	fi
 }
 
@@ -106,7 +115,8 @@ if [ $? -eq 0 ]; then
 	searchFiles
 	enableFirewall
 
-	zenity --info --title="Script End" --text="This is the end of the script. Hope it helped!"
+	zenity --info --width=300 --title="Script End" \
+		--text="This is the end of the script. Hope it helped!"
 else
-	zenity --error --width=300 --title="No Password" --text="No password no script!"
+	zenity --error --title="No Password" --text="No password no script!"
 fi
