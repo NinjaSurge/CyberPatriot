@@ -105,11 +105,11 @@ updateMachine() {
 }
 
 searchFiles() {
-	searchFilesLocation=""
-	findLocation=$(find ./ -name $1)
-	$findLocation
+	searchFilesLocation=./SearchFiles.sh
+	findLocation=$(find ./ -name gui-enabled)
 	if [ $findLocation ]; then
-		searchFilesLocation=./gui-enabled/SearchFiles.sh
+	  searchFilesLocation=./gui-enabled/SearchFiles.sh
+	fi
 	loop="Yes"
 	while [ "$loop" == "Yes" ]; do
 		bash $searchFilesLocation "$sudoPassword" >${TempFile}
