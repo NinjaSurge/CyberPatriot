@@ -20,8 +20,55 @@ if [ "$answer3" = 'y' ]; then
 	      sudo ufw status
 fi
 
-echo "next question?(y/n)"
+echo "Remove Users?(y/n)"
 read answer4
 if [ "$answer4" = 'y' ]; then
-  echo this
+  awk -F: '{ print $1 }' /etc/passwd > users.txt
+
+  printf "" > users_.txt
+  while IFS= read -r line; do
+
+    user_=$(id -u $line)
+
+    if [ $user_ -gt 999 ]; then
+      id -un "$user_" >> users_.txt
+    fi
+  done <users.txt
+  cat ./users_.txt
+
+  while IFS= read -r line; do
+    echo ""
+    echo "Do you want to remove \"$line\"?(y/n)"
+    echo -n "Your answer is... : "
+    read -t 15 remove <&1
+    if [ $remove = y ]; then
+      echo "Removing \"$line\""
+      sudo userdel -r "$line"
+    else
+      echo "Not removing \"$line\""
+    fi
+  done <users_.txt
+
+  rm ./users_.txt
+  rm ./users.txt
 fi
+
+echo "Add Users?(y/n)"
+read answer3
+if [ "$answer3" = 'y' ]; then
+  loop="yes"
+  while [ $loop == "yes" ]; do
+    echo "What's the new user's name?"
+    read name
+    sudo useradd $name
+    echo "Add another User?(y/n)"
+    read addAnotherUser
+    if [ $addAnotherUser == "y" ]; then
+      loop="yes"
+    else
+      loop=""
+    fi
+  done
+fi
+
+echo "End of Script"

@@ -21,22 +21,22 @@ updateMachine() {
   	--text="Do you want to update and upgrade the machine" \
   	--list --radiolist \
   	--column 'Selection' \
-  	--column 'Options' TRUE "Both" FALSE "Update" FALSE "Upgrade" FALSE "Neither"`
-  	
+  	--column 'Options' TRUE "Both" FALSE "Update" FALSE "Upgrade" FALSE "Full-Upgrade" FALSE "Dist-Upgrade" FALSE "Neither"`
+
   	if [ $update_ != "Neither" ]; then
-	
+
 		if [ $update_ == "Both" ]; then
   			echo $sudoPassword | sudo -S apt-get update | tee >(zenity --width=200 --height=100 \
 	    	 --title="Collecting Information" --progress \
 	    	 --pulsate --text="Updating computer..." \
 	    	 --auto-kill --auto-close) >${TempFile}
-  			
+
   			echo "" >> ${TempFile} \
-  			
+
   			echo "---------------------The Upgrade is listed below---------------------" >> ${TempFile} \
-  			
+
   			echo "" >> ${TempFile} \
-  			
+
   			echo $sudoPassword | sudo -S apt-get -y upgrade | tee >(zenity --width=200 --height=100 \
 	    	 --title="Collecting Information" --progress \
 	    	 --pulsate --text="Upgrading computer..." \
@@ -44,10 +44,10 @@ updateMachine() {
 
   			informationOutput "Update and Upgrade Information"
 		fi
-		
+
 		if [ $update_ == "Update" ]; then
-			
-			# Update and pipe the output to the file 
+
+			# Update and pipe the output to the file
 			# TempFile while displaying a loading window
 			echo $sudoPassword | sudo -S apt-get update | tee >(zenity --width=200 --height=100 \
 	    	 --title="Collecting Information" --progress \
@@ -65,7 +65,7 @@ updateMachine() {
 			--column 'Selection' \
 			--column 'Answer' TRUE "Yes" FALSE "No"`
 		fi
-		
+
 		if [ "$update_" == "Upgrade" ] || [ "$UpgradeQ" == "Yes" ]
 		then
 			echo $sudoPassword | sudo -S apt-get upgrade -y | tee >(zenity --width=200 --height=100 \
@@ -76,18 +76,44 @@ updateMachine() {
 			informationOutput "Upgrade Information"
 		fi
 
+		if [ $update_ == "Full-Upgrade" ]
+		then
+			echo $sudoPassword | sudo -S apt-get full-upgrade -y | tee >(zenity --width=200 --height=100 \
+	    	 --title="Collecting Information" --progress \
+	    	 --pulsate --text="Upgrading computer..." \
+	    	 --auto-kill --auto-close) >${TempFile}
+
+			informationOutput "Upgrade Information"
+		fi
+
+		if [ $update_ == "Dist-Upgrade" ]
+		then
+			echo $sudoPassword | sudo -S apt-get dist-upgrade -y | tee >(zenity --width=200 --height=100 \
+	    	 --title="Collecting Information" --progress \
+	    	 --pulsate --text="Upgrading computer..." \
+	    	 --auto-kill --auto-close) >${TempFile}
+
+			informationOutput "Upgrade Information"
+		fi
+
 	elif [ $update_ == "Neither" ]; then
 		zenity --width=200 --info --title="You Chose Nothing" \
 			--text="You chose not to update or upgrade."
-	
+
 	fi
+
 }
 
 searchFiles() {
+	searchFilesLocation=""
+	findLocation=$(find ./ -name $1)
+	$findLocation
+	if [ $findLocation ]; then
+		searchFilesLocation=./gui-enabled/SearchFiles.sh
 	loop="Yes"
 	while [ "$loop" == "Yes" ]; do
-		bash ./SearchFiles.sh "$sudoPassword" >${TempFile}
-		if [ $? -eq 0 ]; then 
+		bash $searchFilesLocation "$sudoPassword" >${TempFile}
+		if [ $? -eq 0 ]; then
 			informationOutput "Search Completed"
 		fi
 		loop=`zenity --title="Search Again?" \
@@ -100,7 +126,7 @@ searchFiles() {
 enableFirewall() {
 	zenity --question --width=300 --title="Enable firewall" \
 		--text="Do you want to enable the firewall?(via ufw)"
-	if [ $? -eq 0 ]; then 
+	if [ $? -eq 0 ]; then
 		echo $sudoPassword | sudo -S ufw enable
 		echo $sudoPassword | sudo -S ufw status >${TempFile}
 		informationOutput "Firewall enabling result"
@@ -110,10 +136,51 @@ enableFirewall() {
 	fi
 }
 
+removeUsers() {
+	zenity --question --width=300 --title="Remove Users" \
+		--text="Do you want to remove any users?"
+	if [ $? -eq 0 ]; then
+	  awk -F: '{ print $1 }' /etc/passwd > users.txt
+
+	  printf "" > users_.txt
+	  while IFS= read -r line; do
+
+	    user_=$(id -u $line)
+
+	    if [ $user_ -gt 999 ]; then
+	      id -un "$user_" >> users_.txt
+	    fi
+	  done <users.txt
+	  cat ./users_.txt
+
+	  while IFS= read -r line; do
+			zenity --question --width=300 --title="Delete $line?" \
+				--text="Do you want to remove $line and all their files?"
+	    if [ $? -eq 0 ]; then
+				echo $sudoPassword | sudo -S userdel -r "$line" | tee >(zenity --width=200 --height=100 \
+		    	 --title="Collecting Information" --progress \
+		    	 --pulsate --text="Upgrading computer..." \
+		    	 --auto-kill --auto-close)
+				if [ $? -eq 0 ]; then
+					zenity --info --title="Removed Sucessfully" --text="$line removed sucessfully."
+				else
+					zenity --error --title="Removal Failed" --text="Removing $line failed."
+				fi
+	    fi
+	  done <users_.txt
+		rm ./users_.txt
+		rm ./users.txt
+	else
+		zenity --info --width=200 --title="Continue" \
+			--text="You choose not to remove any users"
+	fi
+}
+
 if [ $? -eq 0 ]; then
 	updateMachine
 	searchFiles
 	enableFirewall
+	removeUsers
 
 	zenity --info --width=300 --title="Script End" \
 		--text="This is the end of the script. Hope it helped!"
