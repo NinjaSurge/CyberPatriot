@@ -96,6 +96,9 @@ updateMachine() {
 			informationOutput "Upgrade Information"
 		fi
 
+		# claening up the updates and upgrades
+		echo $sudoPassword | sudo -S apt-get autoremove
+
 	elif [ $update_ == "Neither" ]; then
 		zenity --width=200 --info --title="You Chose Nothing" \
 			--text="You chose not to update or upgrade."
