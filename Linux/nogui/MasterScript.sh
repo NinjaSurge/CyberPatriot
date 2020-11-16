@@ -33,10 +33,10 @@ echo "Add Users?(y/n)"
 read answer5
 if [ "$answer5" = 'y' ]; then
   loop="yes"
-  while [ $loop == "yes" ]; do
+  while [ "$loop" == "yes" ]; do
     echo "What's the new user's name?"
     read name
-    sudo useradd $name
+    sudo useradd -m $name
     echo "Add another User?(y/n)"
     read addAnotherUser
     if [ $addAnotherUser == "y" ]; then
@@ -52,42 +52,33 @@ echo ""
 echo "Remove Users?(y/n)"
 read answer4
 if [ "$answer4" = 'y' ]; then
-  loop="yes"
-  while [ $loop == "yes" ]; do
-    awk -F: '{ print $1 }' /etc/passwd > users.txt
+  awk -F: '{ print $1 }' /etc/passwd > users.txt
 
-    printf "" > users_.txt
-    while IFS= read -r line; do
+  printf "" > users_.txt
+  while IFS= read -r line; do
 
-      user_=$(id -u $line)
+    user_=$(id -u $line)
 
-      if [ $user_ -gt 999 ]; then
-        id -un "$user_" >> users_.txt
-      fi
-    done <users.txt
-    cat ./users_.txt
-
-    while IFS= read -r line; do
-      echo ""
-      echo "Do you want to remove \"$line\"?(y/n)"
-      echo -n "Your answer is... : "
-      read -t 15 remove <&1
-      if [ $remove = y ]; then
-        echo "Removing \"$line\""
-        sudo userdel -r "$line"
-      else
-        echo "Not removing \"$line\""
-      fi
-    done <users_.txt
-
-    echo "Remove another User?(y/n)"
-    read removeAnotherUser
-    if [ $removeAnotherUser == "y" ]; then
-      loop="yes"
-    else
-      loop=""
+    if [ $user_ -gt 999 ]; then
+      id -un "$user_" >> users_.txt
     fi
-  done
+  done <users.txt
+
+  cat ./users_.txt > users.txt
+  rm ./users_.txt
+
+  while IFS= read -r line; do
+    echo ""
+    echo "Do you want to remove \"$line\"?(y/n)"
+    echo -n "Your answer is... : "
+    read -t 15 remove <&1
+    if [ $remove = y ]; then
+      echo "Removing \"$line\""
+      sudo userdel -r "$line"
+    else
+      echo "Not removing \"$line\""
+    fi
+  done <users.txt
 
   rm ./users_.txt
   rm ./users.txt
@@ -98,42 +89,32 @@ echo ""
 echo "Add Administrators?(y/n)"
 read answer6
 if [ $answer6 == y ]; then
-  loop="yes"
-  while [ $loop == "yes" ]; do
-    awk -F: '{ print $1 }' /etc/passwd > users.txt
+  awk -F: '{ print $1 }' /etc/passwd > users.txt
 
-    printf "" > users_.txt
-    while IFS= read -r line; do
+  printf "" > users_.txt
+  while IFS= read -r line; do
 
-      user_=$(id -u $line)
+    user_=$(id -u $line)
 
-      if [ $user_ -gt 999 ]; then
-        id -un "$user_" >> users_.txt
-      fi
-    done <users.txt
-    cat ./users_.txt
-
-    while IFS= read -r line; do
-      echo ""
-      echo "Do you want to make \"$line\" an Administrator?(y/n)"
-      echo -n "Your answer is... : "
-      read -t 15 remove <&1
-      if [ $remove = y ]; then
-        echo "Making \"$line\" an Administrator"
-        sudo usermod -aG sudo $line
-        sudo usermod -aG adm $line
-      else
-        echo "Not making \"$line\" an Administrator"
-      fi
-    done <users_.txt
-    echo "Add another Administrator?(y/n)"
-    read addAnotherAdministrator
-    if [ $addAnotherAdministrator == "y" ]; then
-      loop="yes"
-    else
-      loop=""
+    if [ $user_ -gt 999 ]; then
+      id -un "$user_" >> users_.txt
     fi
-  done
+  done <users.txt
+  cat ./users_.txt
+
+  while IFS= read -r line; do
+    echo ""
+    echo "Do you want to make \"$line\" an Administrator?(y/n)"
+    echo -n "Your answer is... : "
+    read -t 15 remove <&1
+    if [ $remove = y ]; then
+      echo "Making \"$line\" an Administrator"
+      sudo usermod -aG sudo $line
+      sudo usermod -aG adm $line
+    else
+      echo "Not making \"$line\" an Administrator"
+    fi
+  done <users_.txt
 fi
 
 echo ""
@@ -156,7 +137,6 @@ if [ "$answer7" = "y" ]; then
     if [ $user_ -gt 999 ]; then
       id -un "$user_" >> Administrators_.txt
     fi
-    echo this
   done <Administrators.txt
 
   cat ./Administrators_.txt > Administrators.txt
@@ -179,10 +159,80 @@ if [ "$answer7" = "y" ]; then
   rm ./Administrators.txt
 fi
 
+echo ""
+echo "Here is the password status of the Users/Administrators"
+
+awk -F: '{ print $1 }' /etc/passwd > users.txt
+
+printf "" > users_.txt
+while IFS= read -r line; do
+
+  user_=$(id -u $line)
+
+  if [ $user_ -gt 999 ]; then
+    id -un "$user_" >> users_.txt
+  fi
+done <users.txt
+
+cat ./users_.txt > users.txt
+rm ./users_.txt
+
+while IFS= read -r line; do
+  echo ""
+  echo "-------------------------$line-------------------------"
+  sudo chage -l $line
+  echo "--------------------------End--------------------------"
+done <users.txt
+
+echo 
+echo "Change User/Administrator Passwords?(y/n)"
+read answer8
+if [ "$answer8" = 'y' ]; then
+  loop="yes"
+  while [ $loop == "yes" ]; do
+#
+#     awk -F: '{ print $1 }' /etc/passwd > users.txt
+#
+#     printf "" > users_.txt
+#     while IFS= read -r line; do
+#
+#       user_=$(id -u $line)
+#
+#       if [ $user_ -gt 999 ]; then
+#         id -un "$user_" >> users_.txt
+#       fi
+#     done <users.txt
+#
+#     cat ./users_.txt > users.txt
+#     rm ./users_.txt
+#
+#     while IFS= read -r line; do
+#       echo ""
+#       echo "Do you want to change \"$line\"'s password?(y/n)"
+#       echo -n "Your answer is... : "
+#       read -t 15 change <&1
+#       if [ $change = y ]; then
+#         echo "Removing \"$line\""
+#         sudo passwd $line
+#       else
+#         echo "Not changing \"$line\"'s password"
+#       fi
+#     done <users.txt
+#
+#     echo "Change another password?(y/n)"
+#     read repeteQuestionAnswer
+#     if [ $repeteQuestionAnswer == "y" ]; then
+#       loop="yes"
+#     else
+#       loop=""
+#     fi
+#   done
+# fi
+
+sudo bash ./login_conf_Configuration.sh
+
 # Cleaning up unnessary files
-  rm ./users_.txt
   rm ./users.txt
-  rm ./Administrators_.txt
   rm ./Administrators.txt
 
 echo "End of Script"
