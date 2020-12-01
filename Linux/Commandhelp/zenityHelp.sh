@@ -22,7 +22,7 @@ zenity "--$WhichHelp" | tee >(zenity --width=200 --height=100 \
                 --pulsate --text="Getting the help you need!" \
                 --auto-kill --auto-close) >${Tempfile}
 
-zenity --title="Zenity Help" --width=500 --height=500 --window-icon=Icon.xpm \
+zenity --title="Zenity Help" --width=500 --height=500 --attach=Zenity Help --window-icon=Icon.xpm \
 --text-info --filename="${Tempfile}"
 
 exit 0

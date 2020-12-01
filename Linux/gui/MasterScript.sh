@@ -2,9 +2,7 @@
 
 TempFile=$(mktemp)
 
-if [ "$1" != "no-pass" ]; then
-	sudoPassword=`zenity --password --title="Password for $USER"`
-fi
+sudoPassword=`zenity --password --title="Password for $USER"`
 
 if [ $? -eq 1 ]; then
 	exit 1
@@ -16,6 +14,30 @@ informationOutput() {
 		 --text-info --filename="${TempFile}"
 }
 
+whatToDo() {
+	userWants=$(zenity --width=800 --height=600 \
+	--title="What do you want done?" \
+	--list --checklist --editable --separator=":"\
+	--column "Do" --column "This" \
+								FALSE "updateMachine" \
+								FALSE "searchFiles" \
+								FALSE "enableFirewall" \
+								FALSE "addGroups" \
+								FALSE "removeGroups" \
+								FALSE "removeUsers" \
+								FALSE "addUsers" \
+								FALSE "addAdmins")
+	echo $userWants > userWants | sed 's/:/\n/g' ./userWants > NewUserWants
+	cat NewUserWants > ./userWants
+	cat ./userWants
+
+	while IFS= read -r line; do
+		$line
+	done < ./userWants
+
+	rm ./userWants
+}
+
 updateMachine() {
   	update_=`zenity --width=500 --height=400 --title="Update The Machine?" \
   	--text="Do you want to update and upgrade the machine" \
@@ -23,7 +45,7 @@ updateMachine() {
   	--column 'Selection' \
   	--column 'Options' TRUE "Both" FALSE "Update" FALSE "Upgrade" FALSE "Full-Upgrade" FALSE "Dist-Upgrade" FALSE "Neither"`
 
-  	if [ $update_ != "Neither" ]; then
+  	if [ $update_ != "Neither" ] || [ $? != 1 ]; then
 
 		if [ $update_ == "Both" ]; then
   			echo $sudoPassword | sudo -S apt-get update | tee >(zenity --width=200 --height=100 \
@@ -56,14 +78,15 @@ updateMachine() {
 
 			# Adding Extra information to the file to be displayed
 			echo "---------------------The upgradable files below---------------------" >>${TempFile}
-			apt-get list --upgradable >>${TempFile}
+			apt list --upgradable >>${TempFile}
 
 			informationOutput "Update Information"
 
-			UpgradeQ=`zenity --title="Upgrade?" \
-			--list --radiolist --text="Would you like to upgrade the computer now?" \
-			--column 'Selection' \
-			--column 'Answer' TRUE "Yes" FALSE "No"`
+			if zenity --question --width=200 --text="Would you like to upgrade the computer now?"; then
+				UpgradeQ="Yes"
+			else
+				UpgradeQ="No"
+			fi
 		fi
 
 		if [ "$update_" == "Upgrade" ] || [ "$UpgradeQ" == "Yes" ]
@@ -99,68 +122,93 @@ updateMachine() {
 		# claening up the updates and upgrades
 		echo $sudoPassword | sudo -S apt-get autoremove
 
-	elif [ $update_ == "Neither" ]; then
-		zenity --width=200 --info --title="You Chose Nothing" \
-			--text="You chose not to update or upgrade."
-
 	fi
 
 }
 
 searchFiles() {
-	searchFilesLocation=./SearchFiles.sh
-	findLocation=$(find ./ -name gui-enabled)
-	if [ $findLocation ]; then
-	  searchFilesLocation=./gui-enabled/SearchFiles.sh
+	zenity --question --width=300 --title="Search for files" \
+		--text="Do you want search for prohibited files?"
+	if [ $? -eq 0 ]; then
+
+    location=`zenity --width=500 --height=400 --title="What path do you want to search?" \
+    	--file-selection --directory`
+
+    if [[ $? -eq 1 ]]; then
+    	zenity --error --title="Search Declined" --width=200 \
+           --text="File search skipped"
+    	exit 1
+    fi
+
+    OptionsArray=()
+    while IFS= read -r line; do
+      OptionsArray+=( "FALSE $line" )
+    done <FileTypes.txt
+    Types=$(zenity --width=500 --height=400 --title="Choose a file extension" --list --text "File Type:" --checklist  --column "Remove" \
+    --column "Types" ${OptionsArray[@]} \
+    --separator=":" > searchFile)
+    sed 's/:/\n/g' ./searchFile > ./newSearchFile
+    cat ./newSearchFile > ./searchFile
+    rm ./newSearchFile
+
+		while IFS= read -r line; do
+      echo "$sudoPassword" | sudo -S find $location -name "*.$line" | tee >(zenity --width=200 --height=100 \
+			 --title="Collecting Information" --progress \
+			 --pulsate --text="Upgrading computer..." \
+			 --auto-kill --auto-close) >> found
+    done < ./searchFile
+
+		zenity --warning --width=200 --text="Clicking ok on the following dialog will delete ALL of the listed files. \n\nIf you want ANY of the files kept remove the files by hand."
+
+		if zenity --text-info --title="Files Found" --filename="./found"
+    then
+      while IFS= read -r line; do
+        rm $line
+      done < found
+    fi
+    rm ./found
+    rm ./searchFile
 	fi
-	loop="Yes"
-	while [ "$loop" == "Yes" ]; do
-		bash $searchFilesLocation "$sudoPassword" >${TempFile}
-		if [ $? -eq 0 ]; then
-			informationOutput "Search Completed"
-		fi
-		loop=`zenity --title="Search Again?" \
-			--list --radiolist --text="Would you like to search for another file type?" \
-			--column 'Selection' \
-			--column 'Answer' TRUE "Yes" FALSE "No"`
-	done
 }
 
 enableFirewall() {
 	zenity --question --width=300 --title="Enable firewall" \
-		--text="Do you want to enable the firewall?(via ufw)"
+		--text="Do you want to enable the firewall?(via gufw)"
 	if [ $? -eq 0 ]; then
-		echo $sudoPassword | sudo -S ufw enable
-		echo $sudoPassword | sudo -S ufw status >${TempFile}
-		informationOutput "Firewall enabling result"
-	else
-		zenity --info --width=200 --title="Continue" \
-			--text="You choose not to enable the firewall"
+		echo $sudoPassword | sudo -S gufw
 	fi
+}
+
+addGroups() {
+	echo null
+}
+
+removeGroups() {
+	echo null
 }
 
 removeUsers() {
 	zenity --question --width=300 --title="Remove Users" \
 		--text="Do you want to remove any users?"
 	if [ $? -eq 0 ]; then
-	  awk -F: '{ print $1 }' /etc/passwd > users.txt
+		awk -F: '{ print $1 }' /etc/passwd > users.txt
 
-	  printf "" > users_.txt
-	  while IFS= read -r line; do
+		printf "" > users_.txt
+		while IFS= read -r line; do
 
-	    user_=$(id -u $line)
+			user_=$(id -u $line)
 
-	    if [ $user_ -gt 999 ]; then
-	      id -un "$user_" >> users_.txt
-	    fi
-	  done <users.txt
+			if [ $user_ -gt 999 ]; then
+				id -un "$user_" >> users_.txt
+			fi
+		done <users.txt
 
 		OptionsArray=()
 		while IFS= read -r line; do
 			OptionsArray+=( "FALSE $line" )
 		done <users_.txt
-		checkUsers=$(zenity --list --text "How linux.byexamples can be improved?" --checklist  --column "Pick" \
-		--column "options" ${OptionsArray[@]} \
+		checkUsers=$(zenity --list --text "Remove Users:" --checklist  --column "Remove" \
+		--column "Users" ${OptionsArray[@]} \
 		--separator=":")
 
 		echo $checkUsers > checkUsers | sed 's/:/\n/g' ./checkUsers > NewCheckUsers
@@ -169,27 +217,24 @@ removeUsers() {
 		cat ./checkUsers
 
 		while IFS= read -r line; do
-			echo $sudoPassword | sudo -S userdel -r $line
+			sudo userdel -r $line
 		done < ./checkUsers
 
 		rm ./users_.txt
 		rm ./users.txt
 		rm ./NewCheckUsers
 		rm ./checkUsers
-	else
-		zenity --info --width=200 --title="Continue" \
-			--text="You choose not to remove any users"
 	fi
 }
 
-add_Users() {
+addUsers() {
 	zenity --question --width=300 --title="Add Users" \
 		--text="Do you want to add any users?"
 	if [ $? -eq 0 ]; then
 		loop="Yes"
 		while [ "$loop" == "Yes" ]; do
-			zenity --forms --title="Add Friend" \
-				--text="Enter information about your friend." \
+			zenity --forms --title="Add User" \
+				--text="Enter the user's information." \
 				--separator=":" \
 				--add-entry="Full Name" \
 			  --add-entry="Username" \
@@ -215,7 +260,11 @@ add_Users() {
 			echo $sudoPassword | sudo -S useradd -m $username
 
 			# gives the user the specified password
-			echo "$username:$password" | sudo chpasswd
+			if [[ $password == "" ]]; then
+			  passwd -e $username
+			else
+				echo "$username:$password" | sudo chpasswd
+			fi
 
 			# deletes all entries but the group entries
 			sed -i '1,3d' ./NewUserList
@@ -230,30 +279,71 @@ add_Users() {
 			zenity --info --title="Done" --text="User added"
 
 			# asking if the user wants to end the loop
-			loop=`zenity --title="Add More Users?" \
-				--list --radiolist --text="Would you like to add another user?" \
-				--column 'Selection' \
-				--column 'Answer' TRUE "Yes" FALSE "No"`
+			if zenity --question --text="Would you like to add another user?"
+		  then
+		    loop="Yes"
+		  else
+		    loop=""
+		  fi
 		done
 		# clean up
 		rm ./NewUserList
-	else
-		zenity --info --width=200 --title="Continue" \
-			--text="You choose not to add any users"
 	fi
 }
 
+addAdmins() {
+  zenity --question --width=300 --title="Add Admin" \
+    --text="Do you want to make any users Administrators?"
+  if [ $? -eq 0 ]; then
+    awk -F: '{ print $1 }' /etc/passwd > users.txt
+
+    printf "" > users_.txt
+    while IFS= read -r line; do
+
+      user_=$(id -u $line)
+
+      if [ $user_ -gt 999 ]; then
+        id -un "$user_" >> users_.txt
+      fi
+    done <users.txt
+
+    OptionsArray=()
+    while IFS= read -r line; do
+      OptionsArray+=( "FALSE $line" )
+    done <users_.txt
+    checkUsers=$(zenity --list --text "Make Admin:" --checklist  --column "Administrator" \
+    --column "User" ${OptionsArray[@]} \
+    --separator=":")
+
+    echo $checkUsers > checkUsers | sed 's/:/\n/g' ./checkUsers > NewCheckUsers
+
+    cat NewCheckUsers > ./checkUsers
+    cat ./checkUsers
+
+    while IFS= read -r line; do
+        echo "Making $line an Administrator"
+        sudo usermod -aG sudo $line
+        sudo usermod -aG adm $line
+    done < ./checkUsers
+
+    rm ./users_.txt
+    rm ./users.txt
+    rm ./NewCheckUsers
+    rm ./checkUsers
+  fi
+}
 
 if [ $? -eq 0 ]; then
-	updateMachine
-	searchFiles
-	enableFirewall
-	add_Users
-	removeUsers
-
-
-	zenity --info --width=300 --title="Script End" \
-		--text="This is the end of the script. Hope it helped!"
+	if [ "$1" == "" ]; then
+		whatToDo
+		rm ./users_.txt
+		rm ./NewUserList
+		rm ./NewUserWants
+		zenity --info --width=300 --title="Script End" \
+			--text="This is the end of the script. Hope it helped!"
+	elif [ "$1" != "" ] | [ $1 != "no-script" ]; then
+		$1
+	fi
 else
 	zenity --error --title="No Password" --text="No password no script!"
 fi

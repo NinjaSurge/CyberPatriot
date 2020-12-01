@@ -4,7 +4,7 @@ echo "(!!Is currently Experimental and not as complete as the nogui version!!)"
 echo "Type \"yes\" for the gui"
 read answer
 if [ $answer = "yes" ]; then
-  bash ./gui-enabled/MasterScript.sh
+  bash ./gui/MasterScript.sh $1
 else
-  bash ./nogui/MasterScript.sh
+  bash ./nogui/MasterScript.sh $1
 fi

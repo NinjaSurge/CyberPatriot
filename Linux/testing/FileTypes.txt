@@ -1,0 +1,9 @@
+txt
+pdf
+odt
+wav
+mp3
+mov
+mp4
+png
+jpg
