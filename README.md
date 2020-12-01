@@ -1,6 +1,6 @@
 # CyberPatriot
 Scripts for Cyber Patriot
 
-To automate the nogui version on the MasterScript.sh. First edit the Automate.sh accordingly, cd into the Linux directory, and run `cat ./scriptScript | sudo bash ./Start.sh`
+Linux is currently the only script being worked on, Windows might be comming soon
 
 [TODO](/TODO.md)
