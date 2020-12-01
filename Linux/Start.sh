@@ -7,7 +7,7 @@ if [ "$1" == "test" ]; then
   bash ./files/testScript.sh $2
 fi
 if [ $answer = "yes" ]; then
-  bash ./files/gui/MasterScript.sh $1
+  bash ./files/GuiMasterScript.sh $1
 else
-  bash ./files/nogui/MasterScript.sh $1
+  bash ./files/NoguiMasterScript.sh $1
 fi
