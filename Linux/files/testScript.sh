@@ -2,6 +2,8 @@
 
 if [ "$1" == "files" ]; then
   for i in {1..4}; do
+    touch this$i.png
+    touch this$i.txt
     touch this$i.mp4
     touch this$i.mp3
     touch this$i.jpg

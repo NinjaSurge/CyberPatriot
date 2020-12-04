@@ -143,7 +143,7 @@ searchFiles() {
     OptionsArray=()
     while IFS= read -r line; do
       OptionsArray+=( "FALSE $line" )
-    done <FileTypes.txt
+    done <./files/FileTypes.txt
     Types=$(zenity --width=500 --height=400 --title="Choose a file extension" --list --text "File Type:" --checklist  --column "Remove" \
     --column "Types" ${OptionsArray[@]} \
     --separator=":" > searchFile)
