@@ -143,8 +143,9 @@ searchFiles() {
     OptionsArray=()
     while IFS= read -r line; do
       OptionsArray+=( "FALSE $line" )
-    done <./files/FileTypes.txt
-    Types=$(zenity --width=500 --height=400 --title="Choose a file extension" --list --text "File Type:" --checklist  --column "Remove" \
+    done <FileTypes.txt
+    Types=$(zenity --width=500 --height=400 --title="Choose a file extension" \
+		--list --text "File Type:" --checklist  --column "Remove" \
     --column "Types" ${OptionsArray[@]} \
     --separator=":" > searchFile)
     sed 's/:/\n/g' ./searchFile > ./newSearchFile
@@ -154,19 +155,32 @@ searchFiles() {
 		while IFS= read -r line; do
       echo "$sudoPassword" | sudo -S find $location -name "*.$line" | tee >(zenity --width=200 --height=100 \
 			 --title="Collecting Information" --progress \
-			 --pulsate --text="Upgrading computer..." \
+			 --pulsate --text="Searching..." \
 			 --auto-kill --auto-close) >> found
     done < ./searchFile
 
-		zenity --warning --width=200 --text="Clicking ok on the following dialog will delete ALL of the listed files. \n\nIf you want ANY of the files kept remove the files by hand."
+		# zenity --warning --width=200 --text="Clicking ok on the following dialog will delete ALL of the listed files. \n\nIf you want ANY of the files kept remove the files by hand."
 
-		if zenity --text-info --title="Files Found" --filename="./found"
-    then
-      while IFS= read -r line; do
-        rm $line
-      done < found
-    fi
+		# zenity --text-info --title="Files Found" --filename="./found"
+
+    removeOptions=()
+    while IFS= read -r line; do
+      removeOptions+=( "FALSE $line" )
+    done < ./found
+    Choose=$(zenity --list --width=500 --height=400 --title="Remove Files" \
+    --checklist --column "Remove" --column "Files" ${removeOptions[@]} \
+    --separator=":" > ./remove)
+    sed 's/:/\n/g' ./remove > ./newRemove
+    cat ./newRemove > ./remove
+    rm ./newRemove
+
+    while IFS= read -r line; do
+      rm $line
+    done < remove
+
+    # clean up
     rm ./found
+    rm ./remove
     rm ./searchFile
 	fi
 }
