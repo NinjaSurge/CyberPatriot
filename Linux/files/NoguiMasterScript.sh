@@ -284,7 +284,7 @@ sshd_config() {
   read answer7
   if [ "$answer7" = "y" ]; then
 
-    fileLocation="./sshd_config"
+    fileLocation="/etc/ssh/sshd_config"
     echo
     echo "========LoginGraceTime========"
     echo
